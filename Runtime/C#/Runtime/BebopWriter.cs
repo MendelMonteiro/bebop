@@ -103,12 +103,13 @@ namespace Bebop.Runtime
         private BebopWriter(Span<byte> buffer)
         {
             if (!BitConverter.IsLittleEndian)
-            {
-                throw new BebopViewException("Big-endian systems are not supported by Bebop.");
-            }
+                ThrowNotSupported();
+
             _buffer = buffer;
             Length = _buffer.Length;
         }
+
+        private static void ThrowNotSupported() => throw new BebopViewException("Big-endian systems are not supported by Bebop.");
 
         /// <summary>
         /// Allocates more space to the current writing process.
@@ -118,9 +119,8 @@ namespace Bebop.Runtime
         private void GrowBy(int amount)
         {
             if ((Length & 0xC0000000) != 0)
-            {
-                throw new BebopViewException("A Bebop View cannot grow beyond 2 gigabytes.");
-            }
+                ThrowTooBig();
+
             if (Length + amount > _buffer.Length)
             {
                 var newBuffer = new Span<byte>(new byte[(Length + amount) << 1]);
@@ -129,6 +129,9 @@ namespace Bebop.Runtime
             }
             Length += amount;
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowTooBig() => throw new BebopViewException("A Bebop View cannot grow beyond 2 gigabytes.");
 
         /// <summary>
         ///     Writes a one-byte Boolean value to the current buffer, with 0 representing false and 1 representing true.
